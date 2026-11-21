@@ -1,0 +1,75 @@
+{
+  "cpu": {
+    "word_bits": 32,
+    "cpu_startup_cycles": 8,
+    "cpu_read_cycles_per_word": 4,
+    "cpu_write_cycles_per_word": 4,
+    "cpu_add_cycles": 1,
+    "cpu_mul_cycles": 3
+  },
+  "smoke": {
+    "lengths": [
+      0,
+      2,
+      10
+    ],
+    "banks": [
+      1,
+      4
+    ],
+    "offload_cycles": [
+      0,
+      32
+    ],
+    "seed": 1600
+  },
+  "calibration": {
+    "lengths": [
+      2,
+      10,
+      32,
+      128,
+      512,
+      2048,
+      8192
+    ],
+    "banks": [
+      1,
+      4,
+      8
+    ],
+    "offload_cycles": [
+      0,
+      32,
+      128
+    ],
+    "seed": 1610
+  },
+  "validation": {
+    "lengths": [
+      3,
+      11,
+      64,
+      256,
+      1024,
+      4096,
+      16384
+    ],
+    "banks": [
+      2,
+      4,
+      16
+    ],
+    "offload_cycles": [
+      16,
+      32,
+      96
+    ],
+    "seed": 1620
+  },
+  "plots": {
+    "banks": 4,
+    "offload_cycles": 32,
+    "length": 1024
+  }
+}
