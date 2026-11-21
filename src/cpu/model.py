@@ -21,22 +21,24 @@ def _compute(op, a, b, word_bits):
     return wrap(sum(x * y for x, y in zip(a, b)))
 
 
+def cpu_cost_parts(workload: Workload, config: Config) -> dict[str, int]:
+    """Serial model, all five components measured in reference cycles."""
+    n, op = workload.n, workload.op
+    adds = n if op == "VADD" else 0
+    if op == "DOT":
+        adds = max(n - 1, 0)
+    writes = 1 if op == "DOT" else n
+    return {
+        "startup": config.cpu_startup_cycles,
+        "input_read": 2 * n * config.cpu_read_cycles_per_word,
+        "output_write": writes * config.cpu_write_cycles_per_word,
+        "addition": adds * config.cpu_add_cycles,
+        "multiplication": (0 if op == "VADD" else n) * config.cpu_mul_cycles,
+    }
+
+
 def estimate_cpu_cycles(workload: Workload, config: Config) -> int:
-    """Predict the modeled CPU cycles using only the operation and length."""
-    n = workload.n
-    writes = 1 if workload.op == "DOT" else n
-    if workload.op == "VADD":
-        arithmetic = n * config.cpu_add_cycles
-    elif workload.op == "VMUL":
-        arithmetic = n * config.cpu_mul_cycles
-    else:
-        arithmetic = n * config.cpu_mul_cycles + max(n - 1, 0) * config.cpu_add_cycles
-    return (
-        config.cpu_startup_cycles
-        + 2 * n * config.cpu_read_cycles_per_word
-        + writes * config.cpu_write_cycles_per_word
-        + arithmetic
-    )
+    return sum(cpu_cost_parts(workload, config).values())
 
 
 def execute_cpu(workload: Workload, memory: Memory, config: Config) -> ExecutionResult:

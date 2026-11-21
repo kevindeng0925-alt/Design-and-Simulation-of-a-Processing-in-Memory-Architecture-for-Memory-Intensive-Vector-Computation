@@ -53,6 +53,11 @@ class ExecutionResult:
     cycles: int
     host_memory_bytes: int
     pim_internal_bytes: int | None = None
+    predicted_cpu_cycles: int | None = None
+    predicted_pim_cycles: int | None = None
+    choice_reason: str | None = None
+    decision_cycles: int | None = None
+    bank_busy_cycles: list[int] | None = None
 
 
 def read_vector(memory: Memory, address: str, n: int, word_bits: int) -> Vector:

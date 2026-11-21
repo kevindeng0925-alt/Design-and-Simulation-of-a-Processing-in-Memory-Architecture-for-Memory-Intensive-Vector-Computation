@@ -11,7 +11,11 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
+from benchmarks.comparison import analyze, case_key
+from benchmarks.provenance import digest, save_json
 from benchmarks.run_benchmarks import MODES, OPS
+
+FIGURES = ("latency_vs_length.png", "host_traffic_vs_length.png", "speedup_vs_banks.png")
 
 LABELS = {"cpu": "CPU-only", "pim": "Always-PIM", "adaptive": "Adaptive CPU/PIM"}
 COLORS = {"cpu": "#24619c", "pim": "#ad542d", "adaptive": "#287859"}
@@ -83,6 +87,11 @@ def main():
     parser.add_argument("--design", type=Path, default=Path("benchmarks/design.json"))
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    receipt = args.output_dir / "comparison_figures.json"
+    receipt.unlink(missing_ok=True)
+    for owned_name in FIGURES:
+        (args.output_dir / owned_name).unlink(missing_ok=True)
     with args.input.open(newline="", encoding="utf-8") as stream:
         rows = list(csv.DictReader(stream))
     splits = {row["split"] for row in rows}
@@ -90,6 +99,20 @@ def main():
         parser.error("provide a nonempty CSV containing one split")
     split, = splits
     design = json.loads(args.design.read_text(encoding="utf-8"))
+    legacy = "input_sha256" not in rows[0]
+    _, points = analyze(rows, design, split)
+    # Expand the planned grid, preserving NaN breaks even for entirely absent CSV rows.
+    indexed = {(case_key(row), row["requested_mode"]): row for row in rows}
+    checked = []
+    for point in points:
+        for mode, field in zip(MODES, ("cpu", "pair", "adaptive")):
+            prior_cpu = indexed.get((case_key(point), "cpu"), {})
+            legacy_cpu = legacy and mode == "cpu" and prior_cpu.get("status") == "ok" and eligible(prior_cpu)
+            if point[field] == "valid" or legacy_cpu:
+                checked.append(indexed[case_key(point), mode])
+            else:
+                checked.append(dict(point, requested_mode=mode, status="missing"))
+    rows = checked
     fixed = design["plots"]
     banks, overhead, length = fixed["banks"], fixed["offload_cycles"], fixed["length"]
     with_overhead = [row for row in rows if int(row["offload_cycles"]) == overhead]
@@ -98,13 +121,15 @@ def main():
     if not any(map(eligible, length_rows)):
         parser.error("the bank/overhead slice has no correct non-mock rows")
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
     shown_rows = [row for row in length_rows + bank_rows if eligible(row)]
     cpu_configs = {json.dumps(json.loads(row["config_json"])["cpu"], sort_keys=True)
                    for row in shown_rows}
     if len(cpu_configs) != 1:
         parser.error("selected rows must share one CPU configuration")
     cpu = json.loads(cpu_configs.pop())
+    suites = {(row["model_version"], row["backend"], row["config_json"]) for row in shown_rows}
+    if len(suites) > 1:
+        parser.error("cannot join different model suites on a single figure")
     versions = sorted({row["model_version"] for row in shown_rows})
     model_note = (
         f"Signed i{cpu['word_bits']}, serial CPU with no cache or overlap. Input: {args.input.name}"
@@ -145,6 +170,13 @@ def main():
         print(speedup_path)
     else:
         print(f"Skipped {speedup_path}: no eligible PIM/Adaptive rows paired with CPU.")
+
+
+    save_json(receipt, {
+        "source_csv": digest(args.input), "design": digest(args.design), "split": split,
+        "files": {name: digest(args.output_dir / name) for name in FIGURES
+                  if (args.output_dir / name).is_file()},
+    })
 
 
 if __name__ == "__main__":

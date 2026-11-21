@@ -71,5 +71,37 @@
     "banks": 4,
     "offload_cycles": 32,
     "length": 1024
+  },
+  "cpu_study": {
+    "lengths": [
+      1,
+      4,
+      64,
+      1024
+    ],
+    "seed": 1630,
+    "scenarios": {
+      "base": {},
+      "memory-low": {
+        "cpu_read_cycles_per_word": 2,
+        "cpu_write_cycles_per_word": 2
+      },
+      "memory-high": {
+        "cpu_read_cycles_per_word": 8,
+        "cpu_write_cycles_per_word": 8
+      },
+      "multiply-low": {
+        "cpu_mul_cycles": 1
+      },
+      "multiply-high": {
+        "cpu_mul_cycles": 6
+      },
+      "startup-low": {
+        "cpu_startup_cycles": 0
+      },
+      "startup-high": {
+        "cpu_startup_cycles": 32
+      }
+    }
   }
 }

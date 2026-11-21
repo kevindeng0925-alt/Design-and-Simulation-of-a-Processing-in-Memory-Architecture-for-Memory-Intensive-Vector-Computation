@@ -1,0 +1,95 @@
+{
+  "cpu_study_observations": 84,
+  "experiment": "7d1b61a1d0b2a85172170609959875290c0030e3e90f0499c805a3723e54d351",
+  "figures": {
+    "cpu_cost_parts.png": "375f1397dc0a4defa6cd1c2dd4a86f914c9a18831ad822b875bc8f3b7ae20c3a",
+    "cpu_sensitivity.png": "67524a7eb6541201d695268ef10227bfc11d027f016c7066b442c033de84446c",
+    "host_traffic_vs_length.png": "43c4a95f7f620a70b7caba4d329823bf9fc2fd308c3a7deac1b22e08bc3760af",
+    "latency_vs_length.png": "6b6c9a829f0c4e8daeb57fa0dedd6f980e1453fa00ffcc9ac63fed42c69e1ab5"
+  },
+  "formal_complete": false,
+  "issues": [
+    "calibration: incomplete or invalid three-mode matrix",
+    "validation: incomplete or invalid three-mode matrix",
+    "validation: no defined speedup at the planned figure slice"
+  ],
+  "report_draft": "fbdb4395689c571a4096b5a9ddc1dea617fff1e1903785413540fd5da409b998",
+  "sources": {
+    "calibration": "67df55eeda98fcb5c256b1f1fd06c254f8e9d498ae2581376b81a7eca3463aaa",
+    "cpu_study": "f30d13d92bd64b019ddf87f537c15eb3a21c51f69079d4202ece4efd8344d4f9",
+    "design": "cd1ee01c0718c848ee5c0051f905c3e7f820a84e2bba75881d37baeeafc6c14c",
+    "validation": "4a2187a77710f45bb24be81633145e4d4d9622dce13610df3fc10cc74811fea8"
+  },
+  "splits": {
+    "calibration": {
+      "adaptive": {
+        "incomparable": 0,
+        "invalid": 0,
+        "missing": 189,
+        "valid": 0
+      },
+      "complete": false,
+      "crossing_intervals": [],
+      "decision_conflicts": 0,
+      "effective_cpu": 21,
+      "fastest_count": 0,
+      "fastest_fraction": null,
+      "mean_extra_cycles": null,
+      "negative_extra": 0,
+      "pairs": {
+        "incomparable": 0,
+        "invalid": 0,
+        "missing": 189,
+        "valid": 0
+      },
+      "planned_cases": 189,
+      "rows": 567,
+      "split": "calibration",
+      "states": {
+        "failed": 0,
+        "mock": 0,
+        "success": 189,
+        "unavailable": 378
+      },
+      "suites": [],
+      "total_extra_cycles": null,
+      "unexpected_rows": 0,
+      "winners": {}
+    },
+    "validation": {
+      "adaptive": {
+        "incomparable": 0,
+        "invalid": 0,
+        "missing": 189,
+        "valid": 0
+      },
+      "complete": false,
+      "crossing_intervals": [],
+      "decision_conflicts": 0,
+      "effective_cpu": 21,
+      "fastest_count": 0,
+      "fastest_fraction": null,
+      "mean_extra_cycles": null,
+      "negative_extra": 0,
+      "pairs": {
+        "incomparable": 0,
+        "invalid": 0,
+        "missing": 189,
+        "valid": 0
+      },
+      "planned_cases": 189,
+      "rows": 567,
+      "split": "validation",
+      "states": {
+        "failed": 0,
+        "mock": 0,
+        "success": 189,
+        "unavailable": 378
+      },
+      "suites": [],
+      "total_extra_cycles": null,
+      "unexpected_rows": 0,
+      "winners": {}
+    }
+  }
+}

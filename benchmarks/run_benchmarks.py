@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import hashlib
 import itertools
 import json
 import operator
@@ -10,7 +11,7 @@ from dataclasses import asdict
 from importlib import import_module
 from pathlib import Path
 
-from benchmarks.backend import Backend, Case
+from benchmarks.backend import Backend, Case, CYCLE_UNIT, SEMANTICS, WINDOW
 from src.cpu.d_compat import Config, Workload
 from src.cpu.model import MODEL_VERSION, execute_cpu
 
@@ -20,6 +21,8 @@ FIELDS = (
     "split", "op", "n", "banks", "offload_cycles", "requested_mode", "actual_path",
     "cycles", "host_memory_bytes", "pim_internal_bytes", "correct", "status", "error",
     "input_seed", "config_json", "model_version", "backend", "is_mock",
+    "input_sha256", "cycle_unit", "semantics", "window", "predicted_cpu_cycles",
+    "predicted_pim_cycles", "choice_reason", "decision_cycles", "bank_busy_cycles",
 )
 
 
@@ -27,7 +30,8 @@ def _cpu(workload, memory, mode, case):
     return execute_cpu(workload, memory, case.cpu)
 
 
-CPU_BACKEND = Backend("src.cpu.model.execute_cpu", MODEL_VERSION, _cpu)
+CPU_BACKEND = Backend("src.cpu.model.execute_cpu", MODEL_VERSION, _cpu,
+                      cycle_unit=CYCLE_UNIT, semantics=SEMANTICS, window=WINDOW)
 
 
 def cases_for(design, split):
@@ -51,6 +55,11 @@ def generate_inputs(n, word_bits, seed):
     randomizer = random.Random(seed)
     bound = min(128, 1 << (word_bits - 1))
     return tuple([randomizer.randrange(-bound, bound) for _ in range(n)] for _ in range(2))
+
+
+def input_digest(a, b):
+    payload = json.dumps([a, b], separators=(",", ":")).encode("ascii")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def reference_answer(op, a, b, bits):
@@ -79,12 +88,13 @@ def output_matches(actual, expected):
 def run_case(case, backends):
     workload = Workload(case.op, "A", "B", "C", case.n)
     a, b = generate_inputs(case.n, case.cpu.word_bits, case.input_seed)
+    digest = input_digest(a, b)
     expected = reference_answer(case.op, a, b, case.cpu.word_bits)
     for mode in MODES:
         backend = backends.get(mode)
         row = dict(split=case.split, op=case.op, n=case.n, banks=case.banks,
                    offload_cycles=case.offload_cycles, input_seed=case.input_seed,
-                   requested_mode=mode)
+                   requested_mode=mode, input_sha256=digest)
         row["config_json"] = json.dumps(
             {"cpu": asdict(case.cpu), "backend_settings": backend.settings if backend else None},
             sort_keys=True,
@@ -94,7 +104,8 @@ def run_case(case, backends):
             continue
 
         row.update(model_version=backend.model_version, backend=backend.name,
-                   is_mock=str(backend.is_mock).lower())
+                   is_mock=str(backend.is_mock).lower(), cycle_unit=backend.cycle_unit,
+                   semantics=backend.semantics, window=backend.window)
         memory = {"A": a.copy(), "B": b.copy()}
         try:
             result = backend.execute(workload, memory, mode, case)
@@ -111,6 +122,18 @@ def run_case(case, backends):
                     continue
                 if type(value) is not int or value < 0:
                     raise ValueError(f"{field} must be a nonnegative integer")
+            for field in ("predicted_cpu_cycles", "predicted_pim_cycles", "decision_cycles"):
+                value = getattr(result, field, None)
+                if value is not None:
+                    if type(value) is not int or value < 0:
+                        raise ValueError(f"invalid {field}")
+                    row[field] = value
+            busy = getattr(result, "bank_busy_cycles", None)
+            if busy is not None:
+                if len(busy) != case.banks or any(type(v) is not int or v < 0 for v in busy):
+                    raise ValueError("invalid bank_busy_cycles")
+                row["bank_busy_cycles"] = json.dumps(busy)
+            row["choice_reason"] = getattr(result, "choice_reason", None)
             row.update(status="ok", cycles=result.cycles, host_memory_bytes=result.host_memory_bytes,
                        pim_internal_bytes=result.pim_internal_bytes)
         except Exception as exc:

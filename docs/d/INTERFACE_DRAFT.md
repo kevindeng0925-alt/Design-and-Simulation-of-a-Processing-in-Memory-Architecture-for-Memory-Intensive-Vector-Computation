@@ -26,3 +26,10 @@
 - **接入统一入口**先核对 `src/common.py`、`docs/interfaces.md` 与 `run(workload, memory, mode, config)`。正式字段落地后优先迁移 D 的适配代码。若共享整数或输出规则有变化，修改对应核心和 oracle，并重新生成数据。
 - **Benchmark 适配器**提供一个可导入的 `benchmarks.backend.Backend` 对象。其 `execute(workload, memory, mode, case)` 将 D 案例转为正式参数，再调用 C。 `case.banks`、`case.offload_cycles`、`case.cpu` 是该实验点的配置。适配器将正式输出和实际路径规范化为 D 的 `ExecutionResult`，并同步正式执行后的目的地址值以供验证。无法等价转换时显式报错。后端记录版本和 `settings`（可序列化 JSON，含 PIM、时基与策略配置），Mock 用 `is_mock=True` 标记。命令加 `--controller-adapter module:attribute`，先跑 smoke，再重跑两个固定实验集。
 - **Adaptive 决策**由 C 在执行前依据 `op`、`n`、bank 划分和成本参数作出。D 的 `estimate_cpu_cycles(workload, config)` 只读取操作和长度，可用作 CPU 估算。benchmark 对三种模式分别调用，只传该次输入和配置。接入时由 C 的诊断或控制流测试验证决策顺序与单路径执行，CSV 的实际路径一列无法单独证明决策时机。
+
+## 第二轮配对字段（待 C 确认）
+
+- 统一入口的 `Backend` 显式声明 `cycle_unit`、`semantics`、`window`。D 使用的常量在 `benchmarks/backend.py`。C 需要核实或换算后再声明；缺失字段使相应样本不可比。三条路径使用同一套 adapter 名称、模型版本和完整的 `settings` 字典，含 B 的成本和 C 的策略版本。
+- Runner 对实际初始 A/B 的规范 JSON 算 SHA-256，并将种子和摘要写入 CSV。分析程序从实验设计重建输入核验摘要。位宽及 CPU 参数取自 `config_json`。旧格式缺少这些证据，需要重新跑 benchmark 才能纳入配对。
+- 可选诊断为 `predicted_cpu_cycles`、`predicted_pim_cycles`、`choice_reason`、`decision_cycles` 和长度等于 bank 数的 `bank_busy_cycles`。未提供时 CSV 留空。所有时间均已换算为公共参考周期。Adaptive 的 `cycles` 必须含决策开销；`decision_cycles` 仅作分项诊断。
+- 评价工具依赖后端如实填报身份、单位和统计窗口。决策先后顺序仍要由 C 的实现或执行轨迹证明。
