@@ -1,0 +1,9 @@
+{
+  "design": "cd1ee01c0718c848ee5c0051f905c3e7f820a84e2bba75881d37baeeafc6c14c",
+  "files": {
+    "host_traffic_vs_length.png": "43c4a95f7f620a70b7caba4d329823bf9fc2fd308c3a7deac1b22e08bc3760af",
+    "latency_vs_length.png": "6b6c9a829f0c4e8daeb57fa0dedd6f980e1453fa00ffcc9ac63fed42c69e1ab5"
+  },
+  "source_csv": "4a2187a77710f45bb24be81633145e4d4d9622dce13610df3fc10cc74811fea8",
+  "split": "validation"
+}
